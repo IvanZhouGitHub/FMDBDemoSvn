@@ -18,7 +18,54 @@
 -(NSString *)dbPath{
     NSArray *path = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString *document = [path objectAtIndex:0];
-    return [document stringByAppendingPathComponent:@"SDK_USER_USERID.sqlite"];
+    return [document stringByAppendingPathComponent:@"IMSC_SDK_USER_USERID.sqlite"];
+}
+
+/**
+ *  初始化数据库
+ */
+-(void)initDataBase{
+    NSArray* SqlList = @[@"PRAGMA foreign_keys = false",
+                         @"CREATE TABLE if not exists IMSC_SDK_USER_CPM_INFO_FILE_TRANSFER (_ID text(32,0) NOT NULL PRIMARY KEY,UID text(32,0),FILE_TRANSFER_TYPE text,INVITED_PARTICIPANTS text,IMDN text,SDP text,FILENUMBER integer)",
+                         @"CREATE UNIQUE INDEX FILE_TRANSFER_index_ID ON IMSC_SDK_USER_CPM_INFO_FILE_TRANSFER (_ID COLLATE NOCASE ASC)",
+                         
+                         @"CREATE TABLE if not exists IMSC_SDK_USER_CACHE_IMAP (_ID text(32,0) NOT NULL PRIMARY KEY,UID text(32,0),HEAD blob(4096,0),META blob,BODY blob(4096,0),PATH text(2048,0),ENCRYPT text(32,0), IMAP_CHECK integer)",
+                         @"CREATE UNIQUE INDEX index_ID ON IMSC_SDK_USER_CACHE_IMAP (_ID COLLATE NOCASE ASC)",
+                         
+                         @"CREATE TABLE if not exists IMSC_SDK_USER_CPM_INFO_HEAD (_ID text(32,0) NOT NULL PRIMARY KEY,UID text(32,0),CPM_From text,CPM_To text, Date text, Subject text, P_Asserted_Service text, Conversation_ID text, Contribution_ID text, InReplyTo_Contribution_ID text, IMDN_Message_ID text, Message_Correlator text, Message_Context text, Content_Type text)",
+                         @"CREATE UNIQUE INDEX INFO_HEAD_index_ID ON IMSC_SDK_USER_CPM_INFO_HEAD (_ID COLLATE NOCASE ASC)",
+                         
+                         @"CREATE TABLE if not exists IMSC_SDK_USER_IMAP_INFO_MIME (_ID text(32,0) NOT NULL PRIMARY KEY,UID text(32,0),CID text(8,0),SIZE_ALL integer,SIZE_GET integer,READY integer)",
+                         @"CREATE UNIQUE INDEX mime_index_ID ON IMSC_SDK_USER_IMAP_INFO_MIME (_ID COLLATE NOCASE ASC)",
+                         
+                         @"CREATE TABLE if not exists IMSC_SDK_USER_UPGRADE (_ID integer NOT NULL PRIMARY KEY AUTOINCREMENT,VERSION text(32,0) NOT NULL,DESC TEXT(4096,0))",
+                         
+                         @"PRAGMA foreign_keys = true"
+                         ]
+    ;
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    FMDatabase *db = [FMDatabase databaseWithPath:self.dbPath];
+    
+    if (![fileManager fileExistsAtPath : self.dbPath]) {
+        NSLog(@"还未创建数据库，现在正在创建数据库");
+        if (![db open]) {
+            db = nil;
+            NSLog(@"database open error");
+            return;
+        }else{
+            if (self.Encryption) {
+            [self encryptionDB];
+        }
+            
+            for (int i = 0; i<[SqlList count]; i++) {
+                [db executeUpdate:SqlList[i]];
+            }
+            
+            
+            [db close];
+        }
+    }
+    NSLog(@"FMDatabase:---------%@",db);
 }
 
 /**
